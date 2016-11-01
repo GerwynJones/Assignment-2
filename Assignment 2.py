@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Oct 31 23:17:23 2016
-
-@author: gezer
-"""
 
 # -*- coding: utf-8 -*-
 """
