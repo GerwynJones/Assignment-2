@@ -24,7 +24,6 @@ def U1(Ui, dx, Nx, v):
 
     return  (v/(2*dx))*(Ui[2:Nx+2] - Ui[0:Nx])
 
-
 def Euler(Ui, U1, dt, dx, Nx, v):
     """ The Y array has two values so we need to split them up 
     when using euler"""
