@@ -30,19 +30,24 @@ def U1(Vi, dx, Nx):
     
 def V1(Vi,dx,Nx):
     Vx = np.zeros(len(Vi))
-    Vx[1:Nx+1] = (1/2*dx)*(Vi[2:Nx+2] - Vi[0:Nx])
+    Vx[1:Nx+1] = (1./2.*dx)*(Vi[2:Nx+2] - Vi[0:Nx])
     return Vx
         
 def W1(Wi,dx,Nx):
     Wx = np.zeros(len(Wi))
-    Wx[1:Nx+1] = (1/2*dx)*(Wi[2:Nx+2] - Wi[0:Nx])
+    Wx[1:Nx+1] = (1./2.*dx)*(Wi[2:Nx+2] - Wi[0:Nx])
     return Wx
+
+def Boundary(Ut , Nx):
+    Ut[0] = Ut[Nx]
+    Ut[1] = Ut[Nx+1]
+    return Ut
 
 ###################################################
 
 def Euler(Ui, U1, Vi, V1, Wi, W1, dt, dx, Nx, v):
     # using Euler method
-    c = 1/v
+    c = 1
     
     Ux = U1(Vi, dx, Nx)
     Wx = W1(Wi, dx, Nx)
@@ -84,7 +89,7 @@ def Rk4(Ui, U1, Vi, V1, Wi, W1, dt, dx, Nx, v):
 
 def Func(x, sigma):
 
-    return np.exp(-(x**2)/(2*sigma**2))
+    return np.exp(-(x**2)/(2.*sigma**2))
     
 ################################################
 
@@ -108,15 +113,17 @@ def Solver(Xc, Nx, T, c, Func, method):
     W[1:Nx+1,0] = -100*x[1:Nx+1]*Xinit
 
     #boundary
-    U[0,0] = U[Nx,0]
-    U[Nx+1,0] = U[1,0]
-    	
+    U[:,0] = Boundary(U[:,0], Nx)
+    V[:,0] = Boundary(V[:,0], Nx)
+    W[:,0] = Boundary(W[:,0], Nx)   
+    
     for i in range(1,Nt+1):	 	
         """THIS CODE MUST CHANGE TO DO EULER AND RK4"""
         U[1:Nx+1,i], V[1:Nx+1,i], W[1:Nx+1,i] = method(U[:,i-1], U1, V[:,i-1], V1, W[:,i-1], W1, dt, dx, Nx, c)
 
-        U[0,i] = U[Nx,i]  
-        U[Nx+1,i] = U[1,i]
+        U[:,i] = Boundary(U[:,i], Nx)  
+        V[:,i] = Boundary(V[:,i], Nx)
+        W[:,i] = Boundary(W[:,i], Nx)
 
     return x, t, U
 
@@ -151,17 +158,18 @@ x, t, U = Solver(Xc, Nx, T, c, Func, Euler)
 
 diff1, diff2 = Convergence(Solver, Xc, n, T, c, Func, Euler, order)
 
-line1, = plt.plot(x, U[:,0], linewidth=2.0, color='r',label='re') 
-
-for i in range(1,len(t)): # this steps through t values
-    line1.set_ydata(U[:,i]) # changes the data for line1 
-    plt.draw()
-
+#line1, = plt.plot(x, U[:,0], linewidth=2.0, color='r',label='re') 
+#
+#for i in range(1,len(t)): # this steps through t values
+#    line1.set_ydata(U[:,i]) # changes the data for line1 
+#    plt.draw()
+plt.plot(x,U[:,51])
 plt.show()
 
 plt.figure()
 plt.plot(t,diff1/diff2)
-
+plt.figure()
+plt.plot(t,diff1); plt.plot(t,diff2)
 plt.ioff() 
 
 
