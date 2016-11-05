@@ -4,151 +4,132 @@ Created on Wed Nov 02 10:27:20 2016
 
 @author: gezer
 """
+from __future__ import division
+import numpy as np
+import matplotlib.pyplot as plt
 
-
-from numpy import *
-from matplotlib.pyplot import *
-import math
-close('all')
+plt.close('all')
 #=======================================
 
-ti = 0.
-tf = 1.2
-xi = -1.0
-xf = 1.
-v = 2.
+a = -1; b = 1
+Xc = np.array([a,b])
 
+Nx = 100
+Ti = 0; Tf = 1.2
+T = np.array([Ti,Tf])
+c = 0.5
 
-t = linspace(ti , tf , 122)
 ## This solves a 1D wave equation to see if the method works.
 
-def rhs(U, V, W , dx, Nx , v):
-    Wt = zeros(len(V))    
+def rhs1(V, dx, Nx ):
+    Wt = np.zeros(len(V))    
     Wt[1:Nx+1] = (1./(2.*dx))*(V[2:Nx+2] - V[0:Nx])  
-    Wt = boundary(Wt,Nx,'periodic')
-    
-    Vt = zeros(len(W)) 
+    Wt = boundary(Wt,Nx)
+    return Wt
+
+def rhs2(W, dx, Nx):    
+    Vt = np.zeros(len(W)) 
     Vt[1:Nx+1] = (1./(2.*dx))*(W[2:Nx+2] - W[0:Nx])  
-    Vt = boundary(Vt,Nx,'periodic')
-    
-    Ut = zeros(len(U))
+    Vt = boundary(Vt,Nx)
+    return Vt
+
+def rhs3(V, dx, Nx ):    
+    Ut = np.zeros(len(V))
     Ut[1:Nx+1] = V[1:Nx+1] 
-    Ut = boundary(Ut,Nx,'periodic')
+    Ut = boundary(Ut,Nx)
+    return Ut 
     
-    return  Ut, Vt, Wt 
-
-
-    
-def boundary(Ut , Nx, typebound):
-    if typebound=='periodic':
-        Ut[0] = Ut[Nx]
-        Ut[1] = Ut[Nx+1]
-    
+def boundary(Ut , Nx):
+    Ut[0] = Ut[Nx]
+    Ut[1] = Ut[Nx+1]
     return Ut
 
-def funcU(x , sigma): ## Sets initial conditions at time t = 0
-    u = exp(-(x**2)/(2.*sigma**2))
+def Func(x , sigma): ## Sets initial conditions at time t = 0
+    u = np.exp(-(x**2)/(2.*sigma**2))
     v = 0
     w = -100*x*u
     return u, v, w
 
-
-
-def euler( Ui , Vi, Wi, dx , dt , Nx , v):
+def Euler( Ui , Vi, Wi, dx , dt , Nx ):
    
-
-    temp2 = rhs(Ui, Vi, Wi, dx , Nx , v)[2]
-    temp2[1:Nx+1] = Wi[1:Nx+1] + temp2[1:Nx+1]*dt    
+    Wx = rhs1(Vi, dx , Nx )
+    Wx[1:Nx+1] = Wi[1:Nx+1] + Wx[1:Nx+1]*dt    
     
-    temp1 = rhs(Ui, Vi, Wi, dx , Nx , v)[1]
-    temp1[1:Nx+1] = Vi[1:Nx+1] + temp1[1:Nx+1]*dt
+    Vx = rhs2(Wi, dx , Nx )
+    Vx[1:Nx+1] = Vi[1:Nx+1] + Vx[1:Nx+1]*dt
 
-    temp = rhs(Ui, Vi, Wi, dx , Nx , v)[0]
-    temp[1:Nx+1] = Ui[1:Nx+1] + temp[1:Nx+1]*dt
-    return temp, temp1, temp2
+    Ux = rhs3(Vi, dx , Nx )
+    Ux[1:Nx+1] = Ui[1:Nx+1] + Ux[1:Nx+1]*dt
 
-
-
+    return Ux, Vx, Wx
 
 
-def AdvSolve(Nx , ti , tf , xi , xf , method , v ): ## v for velocity.
+
+def AdvSolve(Xc, Nx, T, c, Func, method): ## v for velocity.
     
-    dx = (xf - xi)/Nx
-    xgrid = linspace(xi - dx , xf , Nx + 2)
+    Ti, Tf = T
+    a, b = Xc
+    dx = (b-a)/Nx
+    dt = dx*c
+    Nt = int((Tf-Ti)/dt)
+    xgrid = np.linspace(a-dx,b,Nx+2)
+    tgrid = np.linspace(Ti,Tf,Nt+1) 
     
-    c = 0.5
-    dt = c*dx
-    Nt = int((tf - ti)/dt)    
-    tgrid = linspace(ti , tf , Nt + 1)
-    
-    U = zeros((Nt + 1 , Nx + 2))
-    V = zeros((Nt + 1 , Nx + 2))
-    W = zeros((Nt + 1 , Nx + 2))
+    U = np.zeros((Nx + 2, Nt + 1))
+    V = np.zeros((Nx + 2 , Nt + 1))
+    W = np.zeros((Nx + 2 , Nt + 1))
     
     ## initial conditions.
-    V[0 , 1:Nx + 1] = funcU(xgrid[1:Nx+1] , 0.1)[1]
-    W[0 , 1:Nx + 1] = funcU(xgrid[1:Nx+1] , 0.1)[2]
-    U[0 , 1:Nx + 1] = funcU(xgrid[1:Nx+1] , 0.1)[0] ## sigma is 0.1 here.
+    V[1:Nx + 1, 0] = Func(xgrid[1:Nx+1] , 0.1)[1]
+    W[1:Nx + 1, 0] = Func(xgrid[1:Nx+1] , 0.1)[2]
+    U[1:Nx + 1, 0] = Func(xgrid[1:Nx+1] , 0.1)[0] ## sigma is 0.1 here.
     
     
     ## Boundary conditions
     
-    U[0 , :] = boundary(U[0 , :] , Nx, 'periodic')
-    V[0 , :] = boundary(V[0 , :] , Nx, 'periodic')
-    W[0 , :] = boundary(W[0 , :] , Nx, 'periodic')
+    U[:, 0] = boundary(U[:, 0] , Nx)
+    V[:, 0] = boundary(V[:, 0] , Nx)
+    W[:, 0] = boundary(W[:, 0] , Nx)
     
-    for t in range(1 , int(Nt + 1 )):
+    for t in range(1 , int(Nt + 1)):
         
-        U[t , :] = method(U[t-1 , :], V[t-1 , :], W[t-1 , :], dx , dt , Nx , v)[0]           
-        V[t , :] = method(V[t-1 , :], V[t-1 , :], W[t-1 , :], dx , dt , Nx , v)[1]           
-        W[t , :] = method(W[t-1 , :], V[t-1 , :], W[t-1 , :], dx , dt , Nx , v)[2]           
+        U[:, t] = method(U[:, t-1], V[:, t-1], W[:, t-1], dx , dt , Nx )[0]           
+        V[:, t] = method(V[:, t-1], V[:, t-1], W[:, t-1], dx , dt , Nx )[1]           
+        W[:, t] = method(W[:, t-1], V[:, t-1], W[:, t-1], dx , dt , Nx )[2]           
 
-    return U, V, W, tgrid
+    return U, xgrid
 
 
-U, V, W, tgridE100 = AdvSolve(100, ti , tf , xi , xf , euler , v)
+U, x = AdvSolve(Xc, Nx, T, c, Func, Euler)
+U2, x2 = AdvSolve(Xc, Nx, T, c, Func, Euler)
+U3, x3 = AdvSolve(Xc, Nx, T, c, Func, Euler)
 
-U2, V, W, tgridE200 = AdvSolve(200, ti , tf , xi , xf , euler , v)
-U3, V, W, tgridE400 = AdvSolve(400, ti , tf , xi , xf , euler , v)
+plt.figure()
+plt.plot(x,U[:,0])
+plt.plot(x,U[:,26])
+plt.plot(x,U[:,51])
 
-figure()
-plot(U[0])
-plot(U[26])
-plot(U[51])
-
-def L2norm(u1,u2,Nx1,Nt):
-    norm=zeros(Nt+1)
-    for i in range(Nt):
-        tstep=i
-        for j in range(1,Nx1):
-            norm[tstep]=norm[tstep]+(u1[tstep,j]-u2[2*tstep,j*2-1])**2
-    return sqrt(norm/(Nx1+1))
-
-l = L2norm(U, U2, 100, len(tgridE100))
-l2 = L2norm(U2, U3, 200, len(tgridE200))
 
 #figure()   
 #semilogy(tgridE100, l[:-1])
 #semilogy(tgridE200, 2*l2[:-1])
 
-figure()
-plot(tgridE100, l[:-1])
-plot(tgridE200, 2*l2[:-1])
 
-def RK4(U, V, W, dx, dt, Nx, v):  
+
+def RK4(U, V, W, dx, dt, Nx):  
         
-    n1=rhs(U, V,W, dx, Nx, v)[2]
-    m1=rhs(U, V, W, dx, Nx, v)[1]
-    k1=rhs(U, V, W, dx, Nx, v)[0]
-    n2=rhs(U+(0.5)*k1*dt, V+0.5*m1*dt,W+0.5*n1*dt, dx, Nx, v)[2]
-    m2=rhs(U+(0.5)*k1*dt, V+0.5*m1*dt, W+0.5*n1*dt, dx, Nx, v)[1]
-    k2=rhs(U+(0.5)*k1*dt, V+0.5*m1*dt,W+0.5*n1*dt, dx, Nx, v)[0]
-    n3=rhs(U+(0.5)*k2*dt, V+0.5*m2*dt,W+0.5*n2*dt, dx, Nx, v)[2]
-    m3=rhs(U+(0.5)*k2*dt, V+0.5*m2*dt, W+0.5*n2*dt, dx, Nx, v)[1]
-    k3=rhs(U+(0.5)*k2*dt, V+0.5*m2*dt,W+0.5*n2*dt, dx, Nx, v)[0]
-    n4=rhs(U+k3*dt, V+m3*dt,W+n3*dt, dx, Nx, v)[2]
-    m4=rhs(U+k3*dt, V+m3*dt, W+n3*dt, dx, Nx, v)[1]
-    k4=rhs(U+k3*dt, V+m3*dt, W+n3*dt,dx, Nx, v)[0]
+    n1=rhs1(V, dx, Nx)
+    m1=rhs2(W, dx, Nx)
+    k1=rhs3(V, dx, Nx)
+    n2=rhs1(V+0.5*m1*dt, dx, Nx)
+    m2=rhs2(W+0.5*n1*dt, dx, Nx)
+    k2=rhs3(V+0.5*m1*dt, dx, Nx)
+    n3=rhs1(V+0.5*m2*dt, dx, Nx)
+    m3=rhs2(W+0.5*n2*dt, dx, Nx)
+    k3=rhs3(V+0.5*m2*dt, dx, Nx)
+    n4=rhs1( V+m3*dt, dx, Nx)
+    m4=rhs2( W+n3*dt, dx, Nx)
+    k4=rhs3( V+m3*dt, dx, Nx)
       
     W_ = W +(dt/6.)*(n1+2.*n2+2.*n3+n4)
     U_ = U +(dt/6.)*(k1+2.*k2+2.*k3+k4)
@@ -157,23 +138,17 @@ def RK4(U, V, W, dx, dt, Nx, v):
     return U_, V_, W_
 
 
-ur, vr, wr, tgridRK100 = AdvSolve(100, ti , tf , xi , xf , RK4 , v)
-ur2, vr, wr, tgridRK200 = AdvSolve(200, ti , tf , xi , xf , RK4 , v)
-ur3, vr, wr, tgridRK400 = AdvSolve(400, ti , tf , xi , xf , RK4 , v)
+ur, xk = AdvSolve(Xc, Nx, T, c, Func, RK4)
+ur2, xk2 = AdvSolve(Xc, Nx, T, c, Func, RK4)
+ur3, xk3 = AdvSolve(Xc, Nx, T, c, Func, RK4)
 
 
-figure()
-plot(ur[0])
-plot(ur[25])
-plot(ur[50])
+plt.figure()
+plt.plot(xk, ur[:,0])
+plt.plot(xk, ur[:,25])
+plt.plot(xk, ur[:,50])
+show()
 
-
-lr = L2norm(ur, ur2, 100, len(tgridRK100))
-l2r = L2norm(ur2, ur3, 200, len(tgridRK200))
-#
-figure()
-plot(tgridRK100, lr[:-1])
-plot(tgridRK200, 4*l2r[:-1])
 
 
 #figure()
@@ -181,17 +156,11 @@ plot(tgridRK200, 4*l2r[:-1])
 #plot(tgridRK200, ur2)
 #plot(tgridRK400, ur3)
 
-#########################################################
-dx = (xf - xi)/100
-c = 0.5
-dt = c*dx
-Nt = int((tf - ti)/dt)
-x = linspace(xi - dx , xf , 100 + 2)
 
 ##########################################################
 '''Analytical solution''' 
 def analyt(x,t):
-    return .5*exp(-((x-t)**2)/(2*0.1**2)) + .5*exp(-((x+t)**2)/(2*0.1**2))
+    return .5*np.exp(-((x-t)**2)/(2*0.1**2)) + .5*np.exp(-((x+t)**2)/(2*0.1**2))
 
 
 ##########################################################

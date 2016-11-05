@@ -173,7 +173,7 @@ l2r = L2norm(ur2, ur3, 200, len(tgridRK200))
 figure()
 plot(tgridRK100, lr[:-1])
 plot(tgridRK200, 4*l2r[:-1])
-
+show()
 
 #figure()
 #plot(tgridRK100, ur)
@@ -195,10 +195,10 @@ def analyt(x,t):
 
 ##########################################################
 an = analyt(x,0.5)
-#figure()
-#plot(analyt(x,0),label = 't=0')
-#plot(analyt(x,0.25),label = 't=0.25')
-#plot(analyt(x,0.5),label = 't=0.50')
+figure()
+plot(analyt(x,0),label = 't=0')
+plot(analyt(x,0.25),label = 't=0.25')
+plot(analyt(x,0.5),label = 't=0.50')
 #
 #plot(ur[0],label = 't=0 for numerical')
 #plot(ur[25],label = 't=0.25 for numerical')

@@ -8,9 +8,9 @@ Created on Mon Oct 24 11:53:53 2016
 from __future__ import division
 import numpy as np 
 import matplotlib.pyplot as plt
-import time
 
 from PyQt4.QtGui import QApplication # essential for Windows
+plt.close('all')
 plt.ion() # needed for interactive plotting
 
 a = -1; b = 1
@@ -19,69 +19,68 @@ Xc = np.array([a,b])
 Nx = 100
 Ti = 0; Tf = 1.2
 T = np.array([Ti,Tf])
-c = 0.5
+c = 0.25
 
 ###################################################
 
-def U1(Vi, dx, Nx):
-    Ux = np.zeros(len(Vi))
-    Ux[1:Nx+1] = Vi[1:Nx+1]
-    return Ux
-    
-def V1(Vi,dx,Nx):
-    Vx = np.zeros(len(Vi))
-    Vx[1:Nx+1] = (1./2.*dx)*(Vi[2:Nx+2] - Vi[0:Nx])
-    return Vx
-        
-def W1(Wi,dx,Nx):
-    Wx = np.zeros(len(Wi))
-    Wx[1:Nx+1] = (1./2.*dx)*(Wi[2:Nx+2] - Wi[0:Nx])
+def fW(V, dx, Nx ):
+    Wx = np.zeros(len(V))    
+    Wx[1:Nx+1] = (1/(2*dx))*(V[2:Nx+2] - V[0:Nx])  
     return Wx
 
-def Boundary(Ut , Nx):
-    Ut[0] = Ut[Nx]
-    Ut[1] = Ut[Nx+1]
-    return Ut
+def fV(W, dx, Nx):    
+    Vx = np.zeros(len(W)) 
+    Vx[1:Nx+1] = (1/(2*dx))*(W[2:Nx+2] - W[0:Nx])  
+    return Vx
+
+def fU(V, dx, Nx ):    
+    Ux = np.zeros(len(V))
+    Ux[1:Nx+1] = V[1:Nx+1] 
+    return Ux 
+
+def Boundary(Ux, Nx):
+    Ux[0] = Ux[Nx]
+    Ux[Nx+1] = Ux[1]
+    return Ux
 
 ###################################################
 
-def Euler(Ui, U1, Vi, V1, Wi, W1, dt, dx, Nx, v):
+def Euler(Ui, Vi, Wi, dt, dx, Nx):
     # using Euler method
-    c = 1
+    Wx = fW(Vi, dx , Nx)
+    W = Wi - Wx*dt    
     
-    Ux = U1(Vi, dx, Nx)
-    Wx = W1(Wi, dx, Nx)
-    Vx = V1(Vi, dx, Nx)
+    Vx = fV(Wi, dx , Nx)
+    V = Vi - Vx*dt
 
-    U = Ui[1:Nx+1] - dt*Ux[1:Nx+1]
-    V = Vi[1:Nx+1] - c*dt*Wx[1:Nx+1]
-    W = Wi[1:Nx+1] - c*dt*Vx[1:Nx+1]
+    Ux = fU(Vi, dx , Nx)
+    U = Ui - Ux*dt
     
     return U, V, W
 
 ###################################################
 
-def Rk4(Ui, U1, Vi, V1, Wi, W1, dt, dx, Nx, v):
+def Rk4(Ui, Vi, Wi, dt, dx, Nx):
     # using Runge-Kutta method
-    kU1 = U1(Vi, dx, Nx)
-    kV1 = V1(Wi, dx, Nx)
-    kW1 = W1(Vi, dx, Nx)
+    kU1 = fU(Vi, dx, Nx)
+    kV1 = fV(Wi, dx, Nx)
+    kW1 = fW(Vi, dx, Nx)
         
-    kU2 = U1(Vi + kU1*dt/2, dx, Nx)
-    kV2 = V1(Wi + kV1*dt/2, dx, Nx)
-    kW2 = W1(Vi + kW1*dt/2, dx, Nx)    
+    kU2 = fU(Vi + kV1*dt/2., dx, Nx)
+    kV2 = fV(Wi + kW1*dt/2., dx, Nx)
+    kW2 = fW(Vi + kV1*dt/2., dx, Nx)    
 
-    kU3 = U1(Vi + kU2*dt/2, dx, Nx)
-    kV3 = V1(Wi + kV2*dt/2, dx, Nx)
-    kW3 = W1(Vi + kW2*dt/2, dx, Nx)
+    kU3 = fU(Vi + kV2*dt/2., dx, Nx)
+    kV3 = fV(Wi + kW2*dt/2., dx, Nx)
+    kW3 = fW(Vi + kV2*dt/2., dx, Nx)
     
-    kU4 = U1(Vi + kU3*dt, dx, Nx)  
-    kV4 = V1(Wi + kV3*dt, dx, Nx)  
-    kW4 = W1(Vi + kW3*dt, dx, Nx)  
+    kU4 = fU(Vi + kV3*dt, dx, Nx)  
+    kV4 = fV(Wi + kW3*dt, dx, Nx)  
+    kW4 = fW(Vi + kV3*dt, dx, Nx)  
   
-    U = Ui[1:Nx+1] + (dt/6)*(kU1[1:Nx+1] + 2*kU2[1:Nx+1] + 2*kU3[1:Nx+1] + kU4[1:Nx+1])  # U value
-    V = Vi[1:Nx+1] + (dt/6)*(kV1[1:Nx+1] + 2*kV2[1:Nx+1] + 2*kV3[1:Nx+1] + kV4[1:Nx+1])  # V value
-    W = Wi[1:Nx+1] + (dt/6)*(kW1[1:Nx+1] + 2*kW2[1:Nx+1] + 2*kW3[1:Nx+1] + kW4[1:Nx+1])  # W value
+    U = Ui + (dt/6.)*(kU1 + 2*kU2 + 2*kU3 + kU4)  # U value
+    V = Vi + (dt/6.)*(kV1 + 2*kV2 + 2*kV3 + kV4)  # V value
+    W = Wi + (dt/6.)*(kW1 + 2*kW2 + 2*kW3 + kW4)  # W value
 
     return U, V, W
         
@@ -113,27 +112,23 @@ def Solver(Xc, Nx, T, c, Func, method):
     W[1:Nx+1,0] = -100*x[1:Nx+1]*Xinit
 
     #boundary
-    U[:,0] = Boundary(U[:,0], Nx)
-    V[:,0] = Boundary(V[:,0], Nx)
-    W[:,0] = Boundary(W[:,0], Nx)   
-    
+    U[:,0] = Boundary(U[:,0], Nx); V[:,0] = Boundary(V[:,0], Nx); W[:,0] = Boundary(W[:,0], Nx)
+
     for i in range(1,Nt+1):	 	
         """THIS CODE MUST CHANGE TO DO EULER AND RK4"""
-        U[1:Nx+1,i], V[1:Nx+1,i], W[1:Nx+1,i] = method(U[:,i-1], U1, V[:,i-1], V1, W[:,i-1], W1, dt, dx, Nx, c)
+        U[:,i], V[:,i], W[:,i] = method(U[:,i-1], V[:,i-1], W[:,i-1], dt, dx, Nx)
 
-        U[:,i] = Boundary(U[:,i], Nx)  
-        V[:,i] = Boundary(V[:,i], Nx)
-        W[:,i] = Boundary(W[:,i], Nx)
+        U[:,i] = Boundary(U[:,i], Nx); V[:,i] = Boundary(V[:,i], Nx); W[:,i] = Boundary(W[:,i], Nx)      
 
     return x, t, U
 
 ################################################
 
-n = np.array([Nx,2*Nx,4*Nx])
+n = np.array([50,100,200])
 
 order = 1
 
-def Convergence(Solver, Xc, n, T, c, Func, method, order): 
+def L2norm(Solver, Xc, n, T, c, Func, method, order): 
     """ Creating a self-convergence test to see for correct order """
     x1, t1, U1 = Solver(Xc, n[0], T, c, Func, method)  
     x2, t2, U2 = Solver(Xc, n[1], T, c, Func, method)  
@@ -150,26 +145,30 @@ def Convergence(Solver, Xc, n, T, c, Func, method, order):
     diff1 = np.sqrt((1/n[0])*Udt1)                
     diff2 = (2**order)*np.sqrt((1/n[0])*Udt2)  
 
-    return diff1, diff2
+    return diff1, diff2, t1
     
 #################################################    
     
-x, t, U = Solver(Xc, Nx, T, c, Func, Euler)
+x1, t1, U = Solver(Xc, Nx, T, c, Func, Rk4)
 
-diff1, diff2 = Convergence(Solver, Xc, n, T, c, Func, Euler, order)
 
-#line1, = plt.plot(x, U[:,0], linewidth=2.0, color='r',label='re') 
+#diff1, diff2, t = L2norm(Solver, Xc, n, T, c, Func, Rk4, order)
 #
-#for i in range(1,len(t)): # this steps through t values
+#line1, = plt.plot(x1, U[:,0], linewidth=2.0, color='r',label='re') 
+#
+#for i in range(1,len(t1)): # this steps through t values
 #    line1.set_ydata(U[:,i]) # changes the data for line1 
 #    plt.draw()
-plt.plot(x,U[:,51])
-plt.show()
+
+Nt = len(t1)/1.2
+plt.plot(x1, U[:,Nt*0.9])
+plt.plot(x1, U[:,Nt*1])
+plt.plot(x1, U[:,Nt*1.1])
 
 plt.figure()
-plt.plot(t,diff1/diff2)
+plt.semilogy(t,diff1/diff2)
 plt.figure()
-plt.plot(t,diff1); plt.plot(t,diff2)
+plt.semilogy(t,diff1); plt.semilogy(t,diff2)
 plt.ioff() 
 
 
