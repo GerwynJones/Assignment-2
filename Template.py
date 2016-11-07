@@ -99,6 +99,105 @@ def AdvSolve(Xc, Nx, T, c, Func, method): ## v for velocity.
 
     return U, xgrid
 
+## RK4 Method. 
+
+
+
+def RK_rhs1(Vi , dx , Nx):  ## FW
+
+    Wt = zeros(len(Vi))
+
+    
+
+    Wt[1:Nx+1] = (1./(2.*dx))*(Vi[2:Nx + 2] - Vi[0:Nx ])       
+
+    Wt = boundary(Wt , Nx)    
+
+    return Wt ## Returns the full array.
+
+    
+
+def RK_rhs2(Wi , dx , Nx): ## FV
+
+    Vt = zeros(len(Wi))
+
+    Vt[1:Nx+1] = (1./(2.*dx))*(Wi[2:Nx + 2] - Wi[0:Nx ])       
+
+    Vt = boundary(Vt , Nx)      
+
+    return Vt    
+
+
+
+
+
+def RK_rhs3(Vi , dx , Nx): ## FU
+
+    Ut = zeros(len(Vi))
+
+    Ut[1:Nx+1] = Vi[1:Nx+1]     
+
+    Ut = boundary(Ut , Nx)  
+
+    return Ut
+
+
+
+
+
+def RK4(Ui , Wi , Vi , dx , dt , Nx):
+
+    
+
+    ## Note that boundary conditions are applied every step here.     
+
+   
+
+    l1 = RK_rhs1(Vi , dx , Nx ) #FW
+
+    m1 = RK_rhs2(Wi , dx , Nx ) #FV   
+
+    k1 = RK_rhs3(Vi , dx , Nx ) #FU
+
+    
+
+    l2 = RK_rhs1(Vi + (.5*m1*dt) , dx , Nx )
+
+    m2 = RK_rhs2(Wi + (.5*l1*dt) , dx , Nx )
+
+    k2 = RK_rhs3(Vi + (.5*m1*dt) , dx , Nx )
+
+    
+
+    
+
+    l3 = RK_rhs1(Vi + (.5*m2*dt) , dx , Nx )
+
+    m3 = RK_rhs2(Wi + (.5*l2*dt) , dx , Nx )    
+
+    k3 = RK_rhs3(Vi + (.5*m2*dt) , dx , Nx )    
+
+    
+
+    l4 = RK_rhs1(Vi+ (m3*dt), dx , Nx )
+
+    m4 = RK_rhs2(Wi+ (l3*dt), dx , Nx )
+
+    k4 = RK_rhs3(Vi+ (m3*dt), dx , Nx )
+
+   
+
+    
+
+    Wt = Wi + (dt/6.)*(l1 + (2.*l2) + (2.*l3) + l4)
+
+    Vt = Vi + (dt/6.)*(m1 + (2.*m2) + (2.*m3) + m4)
+
+    Ut = Ui + (dt/6.)*(k1 + (2.*k2) + (2.*k3) + k4)
+
+    
+
+    return Vt , Wt , Ut
 
 U, x = AdvSolve(Xc, Nx, T, c, Func, Euler)
 U2, x2 = AdvSolve(Xc, Nx, T, c, Func, Euler)
@@ -146,52 +245,9 @@ ur3, xk3 = AdvSolve(Xc, Nx, T, c, Func, RK4)
 plt.figure()
 plt.plot(xk, ur[:,0])
 plt.plot(xk, ur[:,25])
-plt.plot(xk, ur[:,50])
+plt.plot(xk, ur[:,110])
 show()
 
 
 
-#figure()
-#plot(tgridRK100, ur)
-#plot(tgridRK200, ur2)
-#plot(tgridRK400, ur3)
 
-
-##########################################################
-'''Analytical solution''' 
-def analyt(x,t):
-    return .5*np.exp(-((x-t)**2)/(2*0.1**2)) + .5*np.exp(-((x+t)**2)/(2*0.1**2))
-
-
-##########################################################
-an = analyt(x,0.5)
-#figure()
-#plot(analyt(x,0),label = 't=0')
-#plot(analyt(x,0.25),label = 't=0.25')
-#plot(analyt(x,0.5),label = 't=0.50')
-#
-#plot(ur[0],label = 't=0 for numerical')
-#plot(ur[25],label = 't=0.25 for numerical')
-#plot(ur[50],label = 't=0.50 for numerical')
-#
-#xlabel('x axis')
-#ylabel('U(x)')
-#title('Analytical solution compared to the RK4 method')
-#legend(loc='best')
-#
-#figure()
-#plot(analyt(x,0),label = 't=0')
-#plot(analyt(x,0.25),label = 't=0.25')
-#plot(analyt(x,0.5),label = 't=0.50')
-#plot(U[0], label='t=0 for numerical')
-#plot(U[25], label='t=0.25 for numerical')
-#plot(U[50], label='t=0.50 for numerical')
-#xlabel('x axis')
-#ylabel('U(x)')
-#title('Analytical solution compared to the Euler method')
-#legend(loc='best')
-#show()
-#figure()   
-#plot(tgridRK100, lr[:-1])
-#plot(tgridRK200, (2**2)*l2r[:-1])
-#
